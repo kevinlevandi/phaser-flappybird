@@ -2,6 +2,7 @@ var mainState = {
     preload: function() { 
         game.load.image('bird', 'assets/bird.png');
         game.load.image('pipe', 'assets/pipe.png');
+        game.load.audio('jump', 'assets/jump.wav'); 
     },
 
     create: function() {
@@ -13,7 +14,9 @@ var mainState = {
 
         game.physics.arcade.enable(this.bird);
 
-        this.bird.body.gravity.y = 1000;  
+        this.bird.body.gravity.y = 1000;
+
+        this.bird.anchor.setTo(-0.2, 0.5); 
 
         var spaceKey = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
         spaceKey.onDown.add(this.jump, this); 
@@ -24,17 +27,33 @@ var mainState = {
 
         this.score = 0;
         this.labelScore = game.add.text(20, 20, "0", { font: "30px Arial", fill: "#ffffff" }); 
+
+        this.jumpSound = game.add.audio('jump'); 
     },
 
     update: function() {
+        if (this.bird.angle < 20)
+            this.bird.angle += 1;
+
         if (this.bird.y < 0 || this.bird.y > 490)
             this.restartGame();
 
-        game.physics.arcade.overlap(this.bird, this.pipes, this.restartGame, null, this);
+        game.physics.arcade.overlap(this.bird, this.pipes, this.hitPipe, null, this);
     },
 
     jump: function() {
+        if (this.bird.alive == false)
+            return;  
+
         this.bird.body.velocity.y = -350;
+
+        var animation = game.add.tween(this.bird);
+
+        animation.to({angle: -20}, 100);
+
+        animation.start();
+
+        this.jumpSound.play(); 
     },
 
     restartGame: function() {
@@ -64,6 +83,19 @@ var mainState = {
         this.score += 1;
         this.labelScore.text = this.score; 
     },
+
+    hitPipe: function() {
+        if (this.bird.alive == false)
+            return;
+
+        this.bird.alive = false;
+
+        game.time.events.remove(this.timer);
+
+        this.pipes.forEach(function(p){
+            p.body.velocity.x = 0;
+        }, this);
+    }, 
 };
 
 var game = new Phaser.Game(400, 490);
